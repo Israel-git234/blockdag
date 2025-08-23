@@ -2,8 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.js";
 
 // --- CONTRACT CONFIGURATION ---
+// Using the addresses you provided
+const creatorRegistryAddress = "0x9a0ED98ff619d15B41f57b541f57a149f64e516b2916";
+const adRevenuePoolAddress = "0x63bbEAf7b2c29341FF031A539cD9f406Be117781";
+// We'll use the EmpowerToken as the payment token for the ad pool
 const empowerTokenAddress = "0xD93111E3C9E9C68C1BaE07F1E3c5f3ce483c9b8f";
-const contentAddress = "0xEc66F046C3809Fc029594bAeE02a2dBd058E1A60";
+
+
+const creatorRegistryABI = [
+	{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+	{"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"OwnableInvalidOwner","type":"error"},
+	{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"OwnableUnauthorizedAccount","type":"error"},
+	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"creatorAddress","type":"address"},{"indexed":false,"internalType":"string","name":"channelName","type":"string"}],"name":"CreatorRegistered","type":"event"},
+	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"creatorAddress","type":"address"}],"name":"CreatorRemoved","type":"event"},
+	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"creatorAddress","type":"address"}],"name":"CreatorVerified","type":"event"},
+	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},
+	{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"creators","outputs":[{"internalType":"bool","name":"isRegistered","type":"bool"},{"internalType":"bool","name":"isVerifiedExpert","type":"bool"},{"internalType":"string","name":"channelName","type":"string"}],"stateMutability":"view","type":"function"},
+	{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+	{"inputs":[{"internalType":"string","name":"_channelName","type":"string"}],"name":"registerCreator","outputs":[],"stateMutability":"nonpayable","type":"function"},
+	{"inputs":[{"internalType":"address","name":"_creatorAddress","type":"address"}],"name":"removeCreator","outputs":[],"stateMutability":"nonpayable","type":"function"},
+	{"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+	{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+	{"inputs":[{"internalType":"address","name":"_creatorAddress","type":"address"}],"name":"verifyCreator","outputs":[],"stateMutability":"nonpayable","type":"function"}
+];
+
+const adRevenuePoolABI = [
+	{"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"depositRevenue","outputs":[],"stateMutability":"nonpayable","type":"function"},
+	{"inputs":[{"internalType":"address","name":"_creator","type":"address"},{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"distributePayout","outputs":[],"stateMutability":"nonpayable","type":"function"},
+	{"inputs":[{"internalType":"address","name":"_paymentTokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+	{"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"OwnableInvalidOwner","type":"error"},
+	{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"OwnableUnauthorizedAccount","type":"error"},
+	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},
+	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"creator","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"PayoutDistributed","type":"event"},
+	{"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"depositor","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"RevenueDeposited","type":"event"},
+	{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+	{"inputs":[],"name":"getPoolBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+	{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+	{"inputs":[],"name":"paymentToken","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"}
+];
 
 const empowerTokenABI = [
 	{"inputs":[{"internalType":"address","name":"initialOwner","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
@@ -33,135 +70,40 @@ const empowerTokenABI = [
 	{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"}
 ];
 
-const contentABI = [
-	{"inputs":[{"internalType":"address","name":"_empowerTokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
-	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"videoId","type":"uint256"},{"indexed":true,"internalType":"address","name":"tipper","type":"address"},{"indexed":true,"internalType":"address","name":"creator","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Tipped","type":"event"},
-	{"inputs":[{"internalType":"uint256","name":"_videoId","type":"uint256"},{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"tipVideo","outputs":[],"stateMutability":"nonpayable","type":"function"},
-	{"inputs":[{"internalType":"string","name":"_title","type":"string"},{"internalType":"string","name":"_description","type":"string"},{"internalType":"string","name":"_ipfsHash","type":"string"}],"name":"uploadVideo","outputs":[],"stateMutability":"nonpayable","type":"function"},
-	{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"videoId","type":"uint256"},{"indexed":true,"internalType":"address","name":"creator","type":"address"},{"indexed":false,"internalType":"string","name":"title","type":"string"},{"indexed":false,"internalType":"string","name":"ipfsHash","type":"string"}],"name":"VideoUploaded","type":"event"},
-	{"inputs":[],"name":"empowerToken","outputs":[{"internalType":"contract EmpowerToken","name":"","type":"address"}],"stateMutability":"view","type":"function"},
-	{"inputs":[],"name":"getVideosCount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-	{"inputs":[{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"address","name":"","type":"address"}],"name":"tips","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-	{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"videos","outputs":[{"internalType":"string","name":"title","type":"string"},{"internalType":"string","name":"description","type":"string"},{"internalType":"string","name":"ipfsHash","type":"string"},{"internalType":"address","name":"creator","type":"address"},{"internalType":"uint256","name":"totalTips","type":"uint256"}],"stateMutability":"view","type":"function"}
-];
-
 // --- SVG Icons ---
 const WalletIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H7a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>);
 const PlusIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>);
-const VideoCameraIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 001.553.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>);
-
-// --- Components ---
-
-const VideoCard = ({ video, onClick }) => (
-    <div onClick={onClick} className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-300">
-        <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-            <VideoCameraIcon />
-        </div>
-        <div className="p-4">
-            <h3 className="text-lg font-bold text-gray-800 truncate">{video.title}</h3>
-            <p className="text-sm text-gray-500">By: {`${video.creator.substring(0, 6)}...${video.creator.substring(video.creator.length - 4)}`}</p>
-            <p className="text-sm text-indigo-600 mt-2">Total Tips: {ethers.utils.formatEther(video.totalTips)} EMW</p>
-        </div>
-    </div>
-);
-
-const VideoPlayerModal = ({ video, isOpen, onClose, onTip }) => {
-    const [tipAmount, setTipAmount] = useState('');
-    if (!isOpen || !video) return null;
-
-    // Use a public IPFS gateway to stream the video
-    const videoUrl = `https://ipfs.io/ipfs/${video.ipfsHash}`;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl relative">
-                <button onClick={onClose} className="absolute -top-4 -right-4 bg-red-500 text-white rounded-full h-10 w-10 flex items-center justify-center font-bold text-lg">&times;</button>
-                <div className="aspect-w-16 aspect-h-9 bg-black">
-                     <video src={videoUrl} controls autoPlay className="w-full h-full object-contain"></video>
-                </div>
-                <div className="p-6">
-                    <h2 className="text-2xl font-bold mb-2 text-gray-900">{video.title}</h2>
-                    <p className="text-sm text-gray-500 mb-4">By: {video.creator}</p>
-                    <p className="text-gray-700 mb-6">{video.description}</p>
-                    <div className="flex items-center space-x-2">
-                        <input 
-                            type="number" 
-                            placeholder="Tip Amount (EMW)" 
-                            value={tipAmount}
-                            onChange={(e) => setTipAmount(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        />
-                        <button 
-                            onClick={() => onTip(video.id, tipAmount)}
-                            className="bg-indigo-600 text-white py-2 px-6 rounded-lg font-semibold hover:bg-indigo-700 whitespace-nowrap"
-                        >
-                            Tip Creator
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const UploadVideoModal = ({ isOpen, onClose, onUpload }) => {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [ipfsHash, setIpfsHash] = useState('');
-
-    if (!isOpen) return null;
-
-    const handleSubmit = () => {
-        if (!title || !description || !ipfsHash) {
-            return alert("Please fill all fields.");
-        }
-        onUpload(title, description, ipfsHash);
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-lg">
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Upload Your Video</h2>
-                <div className="space-y-4">
-                    <input type="text" placeholder="Video Title" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                    <textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" rows="4"></textarea>
-                    <input type="text" placeholder="IPFS Hash of Video File" value={ipfsHash} onChange={e => setIpfsHash(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                    <p className="text-xs text-gray-500">Note: For this demo, please upload your video to an IPFS service like Pinata first and paste the hash here.</p>
-                </div>
-                <div className="mt-8 flex justify-end space-x-4">
-                    <button onClick={onClose} className="px-6 py-2 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200">Cancel</button>
-                    <button onClick={handleSubmit} className="px-6 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">Upload</button>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 // --- Main App Component ---
-
 export default function App() {
-    // Connection and Account State
+    // Connection State
     const [account, setAccount] = useState(null);
     const [signer, setSigner] = useState(null);
-    
+    const [isAdmin, setIsAdmin] = useState(false);
+
     // Contract Instances
     const [tokenContract, setTokenContract] = useState(null);
-    const [contentContract, setContentContract] = useState(null);
+    const [registryContract, setRegistryContract] = useState(null);
+    const [poolContract, setPoolContract] = useState(null);
 
     // App State
-    const [videos, setVideos] = useState([]);
-    const [selectedVideo, setSelectedVideo] = useState(null);
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [notification, setNotification] = useState('');
-    const [emwBalance, setEmwBalance] = useState('0');
+    const [isRegistered, setIsRegistered] = useState(false);
+    const [channelName, setChannelName] = useState("");
+    const [poolBalance, setPoolBalance] = useState("0");
+    const [emwBalance, setEmwBalance] = useState("0");
 
+    // Admin Panel State
+    const [payoutAddress, setPayoutAddress] = useState("");
+    const [payoutAmount, setPayoutAmount] = useState("");
+    const [depositAmount, setDepositAmount] = useState("");
+
+    const [notification, setNotification] = useState('');
+    const [error, setError] = useState(null);
+
+    // Connect Wallet and Initialize
     const connectWallet = async () => {
         if (typeof window.ethereum !== 'undefined') {
             try {
-                setError(null);
                 const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
                 const accounts = await web3Provider.send("eth_requestAccounts", []);
                 const web3Signer = web3Provider.getSigner();
@@ -170,9 +112,12 @@ export default function App() {
                 setAccount(accounts[0]);
 
                 const token = new ethers.Contract(empowerTokenAddress, empowerTokenABI, web3Signer);
-                const content = new ethers.Contract(contentAddress, contentABI, web3Signer);
+                const registry = new ethers.Contract(creatorRegistryAddress, creatorRegistryABI, web3Signer);
+                const pool = new ethers.Contract(adRevenuePoolAddress, adRevenuePoolABI, web3Signer);
+
                 setTokenContract(token);
-                setContentContract(content);
+                setRegistryContract(registry);
+                setPoolContract(pool);
 
             } catch (err) {
                 console.error(err);
@@ -183,38 +128,26 @@ export default function App() {
         }
     };
 
-    const fetchAllData = async () => {
-        if(account && contentContract) {
-            fetchVideos();
-            fetchBalance();
+    // Fetch data from contracts
+    const fetchData = async () => {
+        if (account && registryContract && poolContract && tokenContract) {
+            const creatorData = await registryContract.creators(account);
+            setIsRegistered(creatorData.isRegistered);
+
+            const balance = await poolContract.getPoolBalance();
+            setPoolBalance(ethers.utils.formatEther(balance));
+
+            const userBalance = await tokenContract.balanceOf(account);
+            setEmwBalance(ethers.utils.formatEther(userBalance));
+            
+            const owner = await poolContract.owner();
+            setIsAdmin(owner.toLowerCase() === account.toLowerCase());
         }
     };
 
     useEffect(() => {
-        fetchAllData();
-    }, [account, contentContract]);
-
-    const fetchVideos = async () => {
-        if (!contentContract) return;
-        setIsLoading(true);
-        try {
-            const count = await contentContract.getVideosCount();
-            const fetchedVideos = [];
-            for (let i = 0; i < count; i++) {
-                const videoData = await contentContract.videos(i);
-                fetchedVideos.push({ id: i, ...videoData });
-            }
-            setVideos(fetchedVideos.reverse());
-        } catch (err) { console.error("Error fetching videos:", err); }
-        setIsLoading(false);
-    };
-    
-    const fetchBalance = async () => {
-        if(tokenContract && account) {
-            const balance = await tokenContract.balanceOf(account);
-            setEmwBalance(ethers.utils.formatEther(balance));
-        }
-    };
+        fetchData();
+    }, [account, registryContract, poolContract, tokenContract]);
 
     const showNotification = (message) => {
         setNotification(message);
@@ -223,71 +156,66 @@ export default function App() {
 
     // --- Contract Interactions ---
 
-    const handleUploadVideo = async (title, description, ipfsHash) => {
-        if (!contentContract) return;
+    const handleRegister = async () => {
+        if (!registryContract || !channelName) return alert("Please enter a channel name.");
         try {
-            const tx = await contentContract.uploadVideo(title, description, ipfsHash);
-            showNotification("Uploading video to blockchain...");
+            const tx = await registryContract.registerCreator(channelName);
+            showNotification("Registering creator...");
             await tx.wait();
-            showNotification("Video uploaded successfully!");
-            fetchAllData();
-        } catch (err) { setError("Failed to upload video."); console.error(err); }
+            showNotification("Registration successful!");
+            fetchData();
+        } catch (err) { setError("Registration failed."); console.error(err); }
     };
 
-    const handleTipCreator = async (videoId, amount) => {
-        if (!contentContract || !tokenContract || !amount || parseFloat(amount) <= 0) {
-            return alert("Please enter a valid tip amount.");
-        }
+    const handleDeposit = async () => {
+        if (!poolContract || !tokenContract || !depositAmount) return alert("Please enter an amount.");
         try {
-            const amountInWei = ethers.utils.parseEther(amount);
-            
-            showNotification("Approving token transfer for tip...");
-            const approveTx = await tokenContract.approve(contentAddress, amountInWei);
+            const amountInWei = ethers.utils.parseEther(depositAmount);
+            showNotification("Approving token transfer...");
+            const approveTx = await tokenContract.approve(adRevenuePoolAddress, amountInWei);
             await approveTx.wait();
             
-            showNotification("Sending tip...");
-            const tipTx = await contentContract.tipVideo(videoId, amountInWei);
-            await tipTx.wait();
-            
-            showNotification("Tip sent successfully!");
-            fetchAllData();
-        } catch (err) { setError("Failed to send tip."); console.error(err); }
+            showNotification("Depositing funds...");
+            const depositTx = await poolContract.depositRevenue(amountInWei);
+            await depositTx.wait();
+
+            showNotification("Deposit successful!");
+            fetchData();
+        } catch (err) { setError("Deposit failed."); console.error(err); }
     };
-    
-    const handleMintTokens = async () => {
-        if (!tokenContract) return;
+
+    const handlePayout = async () => {
+        if (!poolContract || !payoutAddress || !payoutAmount) return alert("Please fill all fields.");
         try {
-            const amountToMint = ethers.utils.parseEther("1000");
-            const tx = await tokenContract.mint(account, amountToMint);
-            showNotification("Minting 1000 EMW...");
+            const amountInWei = ethers.utils.parseEther(payoutAmount);
+            const tx = await poolContract.distributePayout(payoutAddress, amountInWei);
+            showNotification("Distributing payout...");
             await tx.wait();
-            showNotification("Successfully minted 1000 EMW!");
-            fetchBalance();
-        } catch(err) { setError("Only the contract owner can mint tokens."); console.error(err); }
+            showNotification("Payout successful!");
+            fetchData();
+        } catch (err) { setError("Payout failed."); console.error(err); }
     };
 
     return (
         <div className="min-h-screen bg-gray-100 font-sans">
-            <header className="bg-white shadow-md sticky top-0 z-40">
-                <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
-                        <h1 className="text-3xl font-bold text-indigo-600">EmpowerHer TV</h1>
-                        <div className="flex items-center space-x-4">
-                             {account && (
-                                <div className="flex items-center bg-indigo-100 text-indigo-800 text-sm font-semibold px-4 py-2 rounded-full">
-                                    <span>Balance: {parseFloat(emwBalance).toFixed(2)} EMW</span>
-                                </div>
-                            )}
-                            {account ? (
-                                <div className="flex items-center bg-gray-200 text-gray-800 text-sm font-semibold px-4 py-2 rounded-full">
-                                    {`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}
-                                </div>
-                            ) : (
-                                <button onClick={connectWallet} className="bg-indigo-600 text-white py-2 px-5 rounded-lg font-semibold hover:bg-indigo-700 flex items-center">
-                                    <WalletIcon /> Connect Wallet
-                                </button>
-                            )}
-                        </div>
+            <header className="bg-white shadow-md">
+                <nav className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                    <h1 className="text-3xl font-bold text-indigo-600">EmpowerHer: Social</h1>
+                    <div className="flex items-center space-x-4">
+                        {account && (
+                             <div className="bg-indigo-100 text-indigo-800 text-sm font-semibold px-4 py-2 rounded-full">
+                                <span>{parseFloat(emwBalance).toFixed(2)} EMW</span>
+                            </div>
+                        )}
+                        {account ? (
+                            <div className="bg-gray-200 text-gray-800 text-sm font-semibold px-4 py-2 rounded-full">
+                                {`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}
+                            </div>
+                        ) : (
+                            <button onClick={connectWallet} className="bg-indigo-600 text-white py-2 px-5 rounded-lg font-semibold hover:bg-indigo-700 flex items-center">
+                                <WalletIcon /> Connect Wallet
+                            </button>
+                        )}
                     </div>
                 </nav>
             </header>
@@ -297,30 +225,54 @@ export default function App() {
                 
                 {!account ? (
                     <div className="text-center bg-white p-12 rounded-lg shadow-md">
-                        <h3 className="text-xl font-semibold text-gray-700">Welcome to EmpowerHer TV!</h3>
-                        <p className="text-gray-500 mt-2">Connect your wallet to watch videos and support creators.</p>
+                        <h3 className="text-xl font-semibold text-gray-700">Welcome!</h3>
+                        <p className="text-gray-500 mt-2">Connect your wallet to get started.</p>
                     </div>
                 ) : (
-                     <div>
-                        <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-3xl font-bold text-gray-900">Latest Videos</h2>
-                            <div className="flex space-x-2">
-                                <button onClick={handleMintTokens} className="bg-yellow-500 text-white py-2 px-5 rounded-lg font-semibold hover:bg-yellow-600 flex items-center shadow-lg">
-                                    <PlusIcon /> Get 1000 EMW (Test)
-                                </button>
-                                <button onClick={() => setIsUploadModalOpen(true)} className="bg-green-500 text-white py-2 px-5 rounded-lg font-semibold hover:bg-green-600 flex items-center shadow-lg">
-                                    <VideoCameraIcon /> Upload Video
-                                </button>
-                            </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        {/* Creator Panel */}
+                        <div className="bg-white p-8 rounded-lg shadow-md">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6">Creator Zone</h2>
+                            {isRegistered ? (
+                                <p className="text-green-600">You are registered as a creator!</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    <p>Register to start sharing your content.</p>
+                                    <input 
+                                        type="text"
+                                        placeholder="Your Channel Name"
+                                        value={channelName}
+                                        onChange={(e) => setChannelName(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                                    />
+                                    <button onClick={handleRegister} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700">
+                                        Register as Creator
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                        {isLoading ? ( <p className="text-center">Loading Videos from the Blockchain...</p> ) : videos.length > 0 ? (
-                            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                               {videos.map(video => <VideoCard key={video.id} video={video} onClick={() => setSelectedVideo(video)} />)}
-                            </div>
-                        ) : ( 
-                            <div className="text-center bg-white p-12 rounded-lg shadow-md">
-                                <h3 className="text-xl font-semibold text-gray-700">No videos yet!</h3>
-                                <p className="text-gray-500 mt-2">Be the first to upload a video.</p>
+
+                        {/* Admin Panel */}
+                        {isAdmin && (
+                            <div className="bg-white p-8 rounded-lg shadow-md">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">Admin Panel</h2>
+                                <div className="mb-8 p-4 bg-indigo-50 rounded-lg">
+                                    <h3 className="font-semibold text-lg">Ad Revenue Pool Balance</h3>
+                                    <p className="text-3xl font-bold text-indigo-600">{parseFloat(poolBalance).toFixed(2)} EMW</p>
+                                </div>
+                                
+                                <div className="space-y-4 mb-6">
+                                    <h3 className="font-semibold">Deposit Funds to Pool</h3>
+                                    <input type="number" placeholder="Amount (EMW)" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                                    <button onClick={handleDeposit} className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600">Deposit</button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold">Distribute Payout to Creator</h3>
+                                    <input type="text" placeholder="Creator Address" value={payoutAddress} onChange={e => setPayoutAddress(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                                    <input type="number" placeholder="Amount (EMW)" value={payoutAmount} onChange={e => setPayoutAmount(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                                    <button onClick={handlePayout} className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600">Send Payout</button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -332,9 +284,6 @@ export default function App() {
                     {notification}
                 </div>
             )}
-
-            <UploadVideoModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} onUpload={handleUploadVideo} />
-            <VideoPlayerModal video={selectedVideo} isOpen={!!selectedVideo} onClose={() => setSelectedVideo(null)} onTip={handleTipCreator} />
             
             <style>{`
                 @keyframes fade-in-out {
@@ -350,6 +299,5 @@ export default function App() {
         </div>
     );
 }
-
 
 
