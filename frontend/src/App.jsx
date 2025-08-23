@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.js";
+import WalletComponent from './components/Wallet';
+import PaymentCard from './components/PaymentCard';
+import Explorer from './components/Explorer';
+import Finance from './components/Finance';
 
 // --- CONTRACT CONFIGURATION ---
 const creatorRegistryAddress = "0x9a0ED98ff619d15B41f57b541f57a149f64e516b2916";
@@ -45,6 +49,7 @@ export default function App() {
     const [activeTab, setActiveTab] = useState('social');
     const [notification, setNotification] = useState('');
     const [error, setError] = useState(null);
+    const [walletBalance, setWalletBalance] = useState('0');
 
     // Social State
     const [isRegistered, setIsRegistered] = useState(false);
@@ -217,6 +222,10 @@ export default function App() {
                     <div className="flex space-x-8 border-b">
                         <button onClick={() => setActiveTab('social')} className={`py-4 px-1 border-b-2 ${activeTab === 'social' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Social</button>
                         <button onClick={() => setActiveTab('health')} className={`py-4 px-1 border-b-2 ${activeTab === 'health' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Health & Safety</button>
+                        <button onClick={() => setActiveTab('finance')} className={`py-4 px-1 border-b-2 ${activeTab === 'finance' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Finance</button>
+                        <button onClick={() => setActiveTab('wallet')} className={`py-4 px-1 border-b-2 ${activeTab === 'wallet' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Wallet</button>
+                        <button onClick={() => setActiveTab('card')} className={`py-4 px-1 border-b-2 ${activeTab === 'card' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Payment Card</button>
+                        <button onClick={() => setActiveTab('explorer')} className={`py-4 px-1 border-b-2 ${activeTab === 'explorer' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Explorer</button>
                     </div>
                 </nav>
             </header>
@@ -232,6 +241,10 @@ export default function App() {
                     <div>
                         {activeTab === 'social' && renderSocial()}
                         {activeTab === 'health' && renderHealth()}
+                        {activeTab === 'finance' && <Finance account={account} tokenContract={tokenContract} contracts={{}} />}
+                        {activeTab === 'wallet' && <WalletComponent account={account} tokenContract={tokenContract} onBalanceUpdate={setWalletBalance} />}
+                        {activeTab === 'card' && <PaymentCard account={account} balance={walletBalance} />}
+                        {activeTab === 'explorer' && <Explorer account={account} contracts={{}} />}
                     </div>
                 )}
             </main>
