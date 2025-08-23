@@ -18,7 +18,7 @@ const PaymentCard = ({ account, balance, onTransaction }) => {
         const interval = setInterval(() => {
             // Simulate FX rate fluctuations
             const change = (Math.random() - 0.5) * 0.02; // ±1% change
-            setFxRate(prev => Math.max(0.1, Math.min(2.0, prev + change));
+            setFxRate(prev => Math.max(0.1, Math.min(2.0, prev + change)));
         }, 30000); // Update every 30 seconds
 
         return () => clearInterval(interval);
