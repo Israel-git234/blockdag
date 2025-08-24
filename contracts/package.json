@@ -1,0 +1,21 @@
+{
+	"name": "empowerher-contracts",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"compile": "hardhat compile",
+		"deploy": "hardhat run scripts/deploy.js --network blockdag",
+		"deploy:testnet": "hardhat run scripts/deploy.js --network blockdag_testnet",
+		"test": "hardhat test"
+	},
+	"devDependencies": {
+		"@nomicfoundation/hardhat-toolbox": "^5.0.0",
+		"dotenv": "^16.4.5",
+		"hardhat": "^2.22.16"
+	},
+	"dependencies": {
+		"@openzeppelin/contracts": "^4.9.6"
+	}
+}
+
+

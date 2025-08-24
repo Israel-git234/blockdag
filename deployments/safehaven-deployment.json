@@ -1,0 +1,16 @@
+{
+  "network": "blockdag",
+  "timestamp": "2025-08-24T14:33:00.150Z",
+  "AssistanceCenterRegistry": {
+    "address": "0x80be2F19f118014cC1695E15F5727343cE92229d",
+    "txHash": "0x7784d8a988f5b93852689408f1b1efcff6387545c03140931f9b6c7b05872222"
+  },
+  "EmergencyAlert": {
+    "address": "0xcAA7AC0087F7717354dcfC8Bd1C0d1e14a8C6183",
+    "txHash": "0xc02a6e9388f9a720711e563d2b9bd7107e77b5cb1612614c8441046382c23276"
+  },
+  "CounselorMarketplace": {
+    "address": "0xdF5A7aD6e24a5c4dA2b46D6792A05458328E67Fa",
+    "txHash": "0x95a97533604d0a74382df3176d22896c0fb8826515c156f7624ba8681255e5a7"
+  }
+}

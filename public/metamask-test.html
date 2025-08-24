@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure HTML MetaMask Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold mb-6 text-center">Pure HTML MetaMask Test</h1>
+        
+        <button onclick="connectMetaMask()" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+            Connect Wallet
+        </button>
+        
+        <div class="mt-6 space-y-2">
+            <div id="status" class="text-gray-600">Click "Connect Wallet" to start</div>
+            <div id="chain" class="text-sm text-gray-500"></div>
+        </div>
+
+        <div class="mt-6 text-xs text-gray-400">
+            <p>Pure HTML + JavaScript implementation</p>
+            <p>No React, no frameworks, just vanilla JS</p>
+        </div>
+    </div>
+
+    <script>
+        // Check if the user has MetaMask installed
+        async function connectMetaMask() {
+            if (window.ethereum) {
+                try {
+                    // Request account access
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    console.log("Connected accounts:", accounts);
+                    
+                    // Update UI
+                    document.getElementById('status').innerHTML = `✅ Connected: ${accounts[0]}`;
+                    document.getElementById('status').className = 'text-green-600 font-semibold';
+
+                    // Get current chain
+                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                    document.getElementById('chain').innerHTML = `Chain ID: ${chainId} (${parseInt(chainId, 16)})`;
+
+                    // Optional: Listen for account changes
+                    window.ethereum.on('accountsChanged', (newAccounts) => {
+                        console.log("Accounts changed:", newAccounts);
+                        if (newAccounts.length > 0) {
+                            document.getElementById('status').innerHTML = `✅ Connected: ${newAccounts[0]}`;
+                            document.getElementById('status').className = 'text-green-600 font-semibold';
+                        } else {
+                            document.getElementById('status').innerHTML = '❌ Disconnected';
+                            document.getElementById('status').className = 'text-red-600 font-semibold';
+                        }
+                    });
+
+                    // Optional: Listen for network changes
+                    window.ethereum.on('chainChanged', (chainId) => {
+                        console.log("Network changed to:", chainId);
+                        document.getElementById('chain').innerHTML = `Chain ID: ${chainId} (${parseInt(chainId, 16)})`;
+                        // Reload the page or update your DApp to reflect the new network
+                        // window.location.reload();
+                    });
+
+                } catch (error) {
+                    console.error("User rejected the request or an error occurred:", error);
+                    document.getElementById('status').innerHTML = `❌ Error: ${error.message || 'Connection failed'}`;
+                    document.getElementById('status').className = 'text-red-600 font-semibold';
+                }
+            } else {
+                console.log("MetaMask is not installed!");
+                alert("Please install MetaMask to use this DApp.");
+                document.getElementById('status').innerHTML = '❌ MetaMask not installed';
+                document.getElementById('status').className = 'text-red-600 font-semibold';
+            }
+        }
+    </script>
+</body>
+</html>
