@@ -6,6 +6,18 @@ A comprehensive blockchain-based platform designed to empower women in South Afr
 
 EmpowerHer is a modular, scalable platform built on BlockDAG technology that provides:
 
+## 🔗 BlockDAG Technology Integration
+
+EmpowerHer leverages BlockDAG (Directed Acyclic Graph) technology for superior performance and scalability:
+
+1. **Parallel Processing**: Unlike traditional blockchains that process transactions sequentially, BlockDAG allows multiple transactions to be processed simultaneously, dramatically increasing throughput and reducing wait times.
+
+2. **Scalability**: BlockDAG's DAG structure eliminates the bottleneck of single-chain validation, enabling the platform to handle thousands of transactions per second while maintaining security and decentralization.
+
+3. **Security**: The DAG structure provides inherent security through multiple validation paths, making it resistant to 51% attacks and ensuring the integrity of women's medical records, financial transactions, and social content.
+
+4. **Cost Efficiency**: Lower transaction fees and faster confirmations make micro-transactions, stokvel contributions, and emergency aid distribution economically viable for all users.
+
 - **Social**: Women-first content creation with on-chain rewards
 - **Health & Safety**: Emergency response, medical records, and clinic bookings
 - **Finance**: Grants, jobs, micro-donations, and stokvels

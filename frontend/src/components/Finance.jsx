@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { Target, Briefcase, Heart, Users, DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 
-const Finance = ({ account, tokenContract, contracts }) => {
+const Finance = ({ account, contracts, onTransaction }) => {
     const [activeTab, setActiveTab] = useState('grants');
     const [grants, setGrants] = useState([]);
     const [jobs, setJobs] = useState([]);
