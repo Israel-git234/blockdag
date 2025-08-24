@@ -1,358 +1,276 @@
 import React, { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESSES, NETWORK_CONFIG, initializeContracts } from './config/contracts';
-import WalletComponent from './components/Wallet';
-import PaymentCard from './components/PaymentCard';
-import Explorer from './components/Explorer';
-import Finance from './components/Finance';
-import Social from './components/Social';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Heart, Shield, GraduationCap, Video, DollarSign, User, Menu, X } from 'lucide-react';
+import Dashboard from './components/Dashboard';
 import HealthSafety from './components/HealthSafety';
+import Education from './components/Education';
+import Social from './components/Social';
+import Finance from './components/Finance';
 import Profile from './components/Profile';
+import WalletConnection from './components/WalletConnection';
+import blockchainService from './services/blockchain';
 
 function App() {
-  const [account, setAccount] = useState('');
-  const [provider, setProvider] = useState(null);
-  const [signer, setSigner] = useState(null);
-  const [activeTab, setActiveTab] = useState('social');
-  const [walletBalance, setWalletBalance] = useState('0');
-  const [contracts, setContracts] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [notification, setNotification] = useState('');
-  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [account, setAccount] = useState(null);
+  const [network, setNetwork] = useState(null);
+  const [showWalletModal, setShowWalletModal] = useState(false);
 
-  // Connect to BlockDAG Primordial Testnet
-  const connectWallet = async () => {
-    try {
-      setIsLoading(true);
-      setError('');
-      
-      if (typeof window.ethereum !== 'undefined') {
-        // Request account access
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const account = accounts[0];
-        setAccount(account);
-
-        // Create provider and signer
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        setProvider(provider);
-        setSigner(signer);
-
-        // Check if we're on the right network
-        const network = await provider.getNetwork();
-        if (network.chainId !== NETWORK_CONFIG.CHAIN_ID) {
-          // Switch to BlockDAG Primordial Testnet
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: `0x${NETWORK_CONFIG.CHAIN_ID.toString(16)}` }],
-            });
-          } catch (switchError) {
-            // If network doesn't exist, add it
-            if (switchError.code === 4902) {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId: `0x${NETWORK_CONFIG.CHAIN_ID.toString(16)}`,
-                  chainName: 'BlockDAG Primordial Testnet',
-                  nativeCurrency: {
-                    name: 'BDAG',
-                    symbol: 'BDAG',
-                    decimals: 18
-                  },
-                  rpcUrls: [NETWORK_CONFIG.RPC_URL],
-                  blockExplorerUrls: [NETWORK_CONFIG.EXPLORER_URL]
-                }]
-              });
-            }
-          }
-        }
-
-        // Initialize contracts
-        const contractInstances = await initializeContracts(signer);
-        setContracts(contractInstances);
-        
-        // Get initial balance
-        await updateBalance(account, contractInstances.EMPOWER_TOKEN);
-        
-        showNotification('Wallet connected successfully!');
-      } else {
-        setError('Please install MetaMask!');
-      }
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-      setError('Failed to connect wallet: ' + error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Update wallet balance
-  const updateBalance = async (account, tokenContract) => {
-    try {
-      if (tokenContract && account) {
-        const balance = await tokenContract.balanceOf(account);
-        setWalletBalance(ethers.utils.formatEther(balance));
-      }
-    } catch (error) {
-      console.error('Error updating balance:', error);
-    }
-  };
-
-  // Show notification
-  const showNotification = (message) => {
-    setNotification(message);
-    setTimeout(() => setNotification(''), 4000);
-  };
-
-  // Handle transaction
-  const handleTransaction = async (txPromise, successMessage = 'Transaction successful!') => {
-    try {
-      setIsLoading(true);
-      setError('');
-      
-      const tx = await txPromise;
-      await tx.wait();
-      
-      showNotification(successMessage);
-      
-      // Update balance after transaction
-      if (contracts.EMPOWER_TOKEN) {
-        await updateBalance(account, contracts.EMPOWER_TOKEN);
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Transaction failed:', error);
-      setError('Transaction failed: ' + error.message);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Listen for account changes
   useEffect(() => {
-    if (typeof window.ethereum !== 'undefined') {
-      window.ethereum.on('accountsChanged', (accounts) => {
-        setAccount(accounts[0] || '');
-        if (accounts[0] && contracts.EMPOWER_TOKEN) {
-          updateBalance(accounts[0], contracts.EMPOWER_TOKEN);
+    // Check if wallet is already connected on app load
+    checkInitialWalletConnection();
+  }, []);
+
+  const checkInitialWalletConnection = async () => {
+    try {
+      if (typeof window.ethereum !== 'undefined') {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          const network = await window.ethereum.request({ method: 'eth_chainId' });
+          setAccount(accounts[0]);
+          setNetwork(getNetworkName(network));
+          setWalletConnected(true);
         }
-      });
-
-      window.ethereum.on('chainChanged', () => {
-        window.location.reload();
-      });
+      }
+    } catch (error) {
+      console.error('Error checking initial wallet connection:', error);
     }
-  }, [contracts]);
+  };
 
-  // Social tab functionality
-  const renderSocial = () => (
-    <Social 
-      account={account} 
-      contracts={contracts}
-      onTransaction={handleTransaction}
-    />
-  );
+  const getNetworkName = (chainId) => {
+    switch (chainId) {
+      case '0xaa36a7': return 'Sepolia';
+      case '0x5': return 'Goerli';
+      case '0x539': return 'Local';
+      default: return 'Unknown';
+    }
+  };
 
-  // Health & Safety tab functionality
-  const renderHealth = () => (
-    <HealthSafety 
-      account={account} 
-      contracts={contracts}
-      onTransaction={handleTransaction}
-    />
-  );
+  const handleWalletConnected = (accountAddress, networkName) => {
+    setAccount(accountAddress);
+    setNetwork(networkName);
+    setWalletConnected(true);
+    setShowWalletModal(false);
+  };
+
+  const handleWalletDisconnected = () => {
+    setAccount(null);
+    setNetwork(null);
+    setWalletConnected(false);
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    closeSidebar();
+  };
+
+  const navigationItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Heart, path: '/' },
+    { id: 'health', label: 'Health & Safety', icon: Shield, path: '/health' },
+    { id: 'education', label: 'Education', icon: GraduationCap, path: '/education' },
+    { id: 'social', label: 'Social Network', icon: Video, path: '/social' },
+    { id: 'finance', label: 'Financial Services', icon: DollarSign, path: '/finance' },
+    { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard account={account} network={network} walletConnected={walletConnected} />;
+      case 'health':
+        return <HealthSafety account={account} network={network} walletConnected={walletConnected} />;
+      case 'education':
+        return <Education account={account} network={network} walletConnected={walletConnected} />;
+      case 'social':
+        return <Social account={account} network={network} walletConnected={walletConnected} />;
+      case 'finance':
+        return <Finance account={account} network={network} walletConnected={walletConnected} />;
+      case 'profile':
+        return <Profile account={account} network={network} walletConnected={walletConnected} />;
+      default:
+        return <Dashboard account={account} network={network} walletConnected={walletConnected} />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">EmpowerHer</h1>
-              <p className="ml-4 text-sm text-gray-600 hidden md:block">Web3 for Women's Safety, Finance & Freedom</p>
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              {/* Logo and Title */}
+              <div className="flex items-center">
+                <button
+                  onClick={toggleSidebar}
+                  className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+                
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                    <Heart className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">Women's Empowerment</h1>
+                    <p className="text-sm text-gray-600">Blockchain Platform</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Wallet Connection */}
+              <div className="flex items-center gap-4">
+                {walletConnected ? (
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-sm text-gray-600">Connected</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Unknown'}
+                      </div>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      network === 'Sepolia' ? 'text-purple-600 bg-purple-50' :
+                      network === 'Goerli' ? 'text-blue-600 bg-blue-50' :
+                      network === 'Local' ? 'text-green-600 bg-green-50' :
+                      'text-gray-600 bg-gray-50'
+                    }`}>
+                      {network || 'Unknown'}
+                    </div>
+                    <button
+                      onClick={() => setShowWalletModal(true)}
+                      className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                    >
+                      Wallet
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowWalletModal(true)}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    Connect Wallet
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex">
+          {/* Sidebar */}
+          <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}>
+            <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
+              <button
+                onClick={closeSidebar}
+                className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
             
-            <div className="flex items-center space-x-4">
-              {!account ? (
-                <button
-                  onClick={connectWallet}
-                  disabled={isLoading}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {isLoading ? 'Connecting...' : 'Connect Wallet'}
-                </button>
+            <nav className="mt-6 px-3">
+              <ul className="space-y-2">
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => handleTabChange(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                          activeTab === item.id
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 ${
+                          activeTab === item.id ? 'text-purple-600' : 'text-gray-500'
+                        }`} />
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+
+            {/* Wallet Status */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+              {walletConnected ? (
+                <div className="text-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mx-auto mb-2"></div>
+                  <p className="text-xs text-gray-600">Wallet Connected</p>
+                  <p className="text-xs text-gray-500">{network} Network</p>
+                </div>
               ) : (
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-600">
-                    {account.slice(0, 6)}...{account.slice(-4)}
-                  </span>
-                  <span className="text-sm font-medium text-green-600">
-                    {walletBalance} EMW
-                  </span>
+                <div className="text-center">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mx-auto mb-2"></div>
+                  <p className="text-xs text-gray-600">Wallet Disconnected</p>
+                  <button
+                    onClick={() => setShowWalletModal(true)}
+                    className="text-xs text-purple-600 hover:text-purple-700 mt-1"
+                  >
+                    Connect Now
+                  </button>
                 </div>
               )}
             </div>
-          </div>
+          </aside>
 
-          {/* Navigation Tabs */}
-          <nav className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('social')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'social'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Social
-            </button>
-            <button
-              onClick={() => setActiveTab('health')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'health'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Health & Safety
-            </button>
-            <button
-              onClick={() => setActiveTab('finance')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'finance'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Finance
-            </button>
-            <button
-              onClick={() => setActiveTab('wallet')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'wallet'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Wallet
-            </button>
-            <button
-              onClick={() => setActiveTab('card')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'card'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Payment Card
-            </button>
-            <button
-              onClick={() => setActiveTab('explorer')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'explorer'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Explorer
-            </button>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'profile'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Profile
-            </button>
-          </nav>
+          {/* Main Content */}
+          <main className="flex-1 lg:ml-0">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              {renderContent()}
+            </div>
+          </main>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            <p>{error}</p>
-            <button onClick={() => setError('')} className="ml-4 font-bold">×</button>
+        {/* Wallet Connection Modal */}
+        {showWalletModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+              <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Wallet Connection</h3>
+                <button
+                  onClick={() => setShowWalletModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6">
+                <WalletConnection
+                  onWalletConnected={handleWalletConnected}
+                  onWalletDisconnected={handleWalletDisconnected}
+                />
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6">
-            <p>Processing transaction...</p>
-          </div>
+        {/* Overlay for mobile sidebar */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+            onClick={closeSidebar}
+          />
         )}
-
-        {!account ? (
-          <div className="text-center bg-white p-12 rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold text-gray-700">Welcome to EmpowerHer!</h3>
-            <p className="text-gray-500 mt-2">Connect your wallet to access the women empowerment platform</p>
-            <button
-              onClick={connectWallet}
-              disabled={isLoading}
-              className="mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {isLoading ? 'Connecting...' : 'Connect Wallet'}
-            </button>
-          </div>
-        ) : (
-          <div>
-            {activeTab === 'social' && renderSocial()}
-            {activeTab === 'health' && renderHealth()}
-            {activeTab === 'finance' && (
-              <Finance 
-                account={account} 
-                contracts={contracts}
-                onTransaction={handleTransaction}
-              />
-            )}
-            {activeTab === 'wallet' && (
-              <WalletComponent 
-                account={account} 
-                balance={walletBalance}
-                contracts={contracts}
-                onTransaction={handleTransaction}
-              />
-            )}
-            {activeTab === 'card' && (
-              <PaymentCard 
-                account={account} 
-                balance={walletBalance}
-                onTransaction={handleTransaction}
-              />
-            )}
-            {activeTab === 'explorer' && (
-              <Explorer 
-                account={account}
-                contracts={contracts}
-              />
-            )}
-            {activeTab === 'profile' && (
-              <Profile 
-                account={account}
-                contracts={contracts}
-                onTransaction={handleTransaction}
-              />
-            )}
-          </div>
-        )}
-      </main>
-      
-      {/* Notification */}
-      {notification && (
-        <div className="fixed bottom-5 right-5 bg-green-500 text-white py-3 px-5 rounded-lg shadow-lg z-50">
-          {notification}
-        </div>
-      )}
-    </div>
+      </div>
+    </Router>
   );
 }
 
