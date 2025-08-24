@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 🌟 EmpowerHer Platform - Women's Empowerment on BlockDAG
 
 > **A comprehensive decentralized platform empowering women through blockchain technology, featuring video learning, financial circles, health records, and emergency safety support.**
@@ -13,10 +13,10 @@
 EmpowerHer Platform is a revolutionary decentralized application (dApp) built on the BlockDAG network, designed specifically to address the unique challenges and opportunities faced by women in today's digital economy. The platform combines cutting-edge blockchain technology with practical, real-world applications to create a comprehensive ecosystem for women's empowerment.
 
 ### 🌍 **Mission Statement**
-To democratize access to education, financial services, healthcare, and safety resources for women worldwide through transparent, secure, and accessible blockchain technology.
+To democratize access to free education, financial services, healthcare, and safety resources for women in SA and  worldwide through transparent, secure, and accessible blockchain technology.
 
 ### 🚀 **Key Features**
-- **🎥 Video Learning Platform** - Professional content creation and monetization
+- **🎥 Video content Platform** - Professional content creation and monetization
 - **💰 Financial Circles (Stokvel)** - Traditional savings groups with blockchain transparency
 - **🏥 Health Records Management** - Secure, private medical data storage
 - **🛡️ SafeHaven Emergency Support** - 24/7 safety and assistance network
@@ -179,7 +179,7 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 🧪 Testing the Platform
 
-### **1. Video Learning**
+### **1. Video Learning/content**
 - Connect your wallet
 - Upload a video or create a course
 - Test monetization features
