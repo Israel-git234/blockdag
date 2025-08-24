@@ -8,9 +8,9 @@ module.exports = {
       chainId: 1337
     },
     blockdag_testnet: {
-      url: "https://rpc-stage.devdomian123.com",
+      url: "https://rpc.primordial.bdagscan.com",
       accounts: ["0x7e839cd976b5710a255fa3785ec14215d51ba5c803608609442a6c07a6a81975"],
-      chainId: 24171
+      chainId: 1043
     }
   }
 };
