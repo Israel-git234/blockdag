@@ -328,22 +328,15 @@ We welcome contributions from the community! Here's how you can help:
 ## 📞 Contact & Support
 
 ### **Team Information**
-- **Project Lead**: [Your Name]
-- **Email**: [your.email@example.com]
-- **GitHub**: [@yourusername]
-- **LinkedIn**: [Your LinkedIn]
+- **Project Lead**: Israel Mathivha
+- **Email**: Israelmathivha2@gmail.com
+- **GitHub**: Israel-git234
+- **LinkedIn**: www.linkedin.com/in/israel-mathivha-2169ba313
 
 ### **Community Links**
-- **Discord**: [Join our community](https://discord.gg/empowerher)
-- **Telegram**: [Telegram group](https://t.me/empowerher)
-- **Twitter**: [@EmpowerHerDApp](https://twitter.com/EmpowerHerDApp)
-- **Website**: [empowerher.io](https://empowerher.io)
-
+-
 ### **Support Channels**
-- **GitHub Issues**: [Report bugs](https://github.com/yourusername/empowerher-platform/issues)
-- **Documentation**: [Read the docs](https://docs.empowerher.io)
-- **Discord Support**: [Get help](https://discord.gg/empowerher)
-=======
+
 # 🚀 Women's Empowerment Blockchain Platform
 
 A comprehensive blockchain-based platform designed to empower women in South Africa through financial inclusion, healthcare access, education, and community support.
